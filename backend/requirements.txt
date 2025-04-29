@@ -1,4 +1,4 @@
 flask
 flask-jwt-extended
 flask-cors
-sqlite3
+
