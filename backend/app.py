@@ -61,6 +61,7 @@ def login():
 @app.route('/upload', methods=['POST'])
 @jwt_required()
 def upload_file():
+    print("UPLOAD route hit!")  # 👈 Add this line
     try:
         current_user = get_jwt_identity()
 
