@@ -1,3 +1,4 @@
+// App.js
 import React, { useState } from "react";
 import axios from "axios";
 
@@ -6,7 +7,7 @@ function App() {
   const [file, setFile] = useState(null);
   const [filename, setFilename] = useState("");
 
-  const API_BASE_URL = "http://localhost:5000";  // Changed from 127.0.0.1
+  const API_BASE_URL = "http://localhost:5000";  // Flask backend URL
 
   console.log("App component is rendering...");
 
@@ -29,18 +30,18 @@ function App() {
       alert("Please select a file before uploading.");
       return;
     }
-  
+
     const formData = new FormData();
     formData.append("file", file);
-  
+    formData.append("subject", "dummy"); // ✅ Required field for backend
+
     console.log("Uploading file:", file.name);
     console.log("Token being sent:", token);
-  
+
     try {
       const res = await axios.post(`${API_BASE_URL}/upload`, formData, {
         headers: {
           Authorization: `Bearer ${token}`,
-          // ❌ Do NOT set "Content-Type" manually!
         },
       });
       console.log("Upload response:", res.data);
@@ -50,7 +51,6 @@ function App() {
       alert("File upload failed! Check console for details.");
     }
   };
-  
 
   const downloadFile = async () => {
     if (!filename) {
@@ -61,18 +61,18 @@ function App() {
       alert("You must log in first!");
       return;
     }
-  
+
     try {
-      const res = await axios.get(`http://127.0.0.1:5000/download/${encodeURIComponent(filename)}`, {
+      const res = await axios.get(`${API_BASE_URL}/download/${encodeURIComponent(filename)}`, {
         headers: { Authorization: `Bearer ${token}` },
-        responseType: "blob", // Ensure we get a file response
+        responseType: "blob",
       });
-  
+
       if (res.data.size === 0) {
         alert("File not found on server!");
         return;
       }
-  
+
       const url = window.URL.createObjectURL(new Blob([res.data]));
       const link = document.createElement("a");
       link.href = url;
@@ -80,14 +80,13 @@ function App() {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-  
+
       console.log("Download successful:", filename);
     } catch (error) {
       console.error("Download error:", error);
       alert("Download failed! Check if the file exists on the server.");
     }
   };
-  
 
   return (
     <div>
@@ -106,3 +105,4 @@ function App() {
 }
 
 export default App;
+
