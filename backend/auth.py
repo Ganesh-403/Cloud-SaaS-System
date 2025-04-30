@@ -1,4 +1,3 @@
-# Python script
 from flask_jwt_extended import create_access_token
 import sqlite3
 from config import DATABASE_PATH

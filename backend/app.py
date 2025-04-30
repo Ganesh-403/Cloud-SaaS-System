@@ -4,27 +4,28 @@ from flask_cors import CORS
 import sqlite3
 import os
 
-app = Flask(__name__)
-app.config['JWT_SECRET_KEY'] = 'supersecretkey'
-jwt = JWTManager(app)
-CORS(app, supports_credentials=True)
+from config import SECRET_KEY, UPLOAD_FOLDER, DATABASE_PATH
 
-UPLOAD_FOLDER = "uploads"
+app = Flask(__name__)
+app.config['JWT_SECRET_KEY'] = SECRET_KEY
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+jwt = JWTManager(app)
+
+# Allow credentials and all origins
+CORS(app, supports_credentials=True, resources={r"/*": {"origins": "*"}})
+
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-DB_PATH = "database/cloud_saas.db"
 
 # Initialize database and create tables
 def init_db():
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DATABASE_PATH)
     cursor = conn.cursor()
     
-    # Create users table if it doesn't exist
     cursor.execute('''CREATE TABLE IF NOT EXISTS users (
                         username TEXT PRIMARY KEY,
                         password TEXT NOT NULL,
                         role TEXT CHECK(role IN ('admin', 'user')) NOT NULL)''')
-    
-    # Check if users exist, otherwise insert default users
+
     cursor.execute("SELECT COUNT(*) FROM users")
     if cursor.fetchone()[0] == 0:
         cursor.executemany("INSERT INTO users VALUES (?, ?, ?)", [
@@ -44,7 +45,7 @@ def login():
         username = data.get("username")
         password = data.get("password")
 
-        conn = sqlite3.connect(DB_PATH)
+        conn = sqlite3.connect(DATABASE_PATH)
         cursor = conn.cursor()
         cursor.execute("SELECT password, role FROM users WHERE username = ?", (username,))
         user = cursor.fetchone()
@@ -63,20 +64,16 @@ def login():
 def upload_file():
     try:
         current_user = get_jwt_identity()
-        
-        # Check if a file is included in the request
+
         if 'file' not in request.files:
             return jsonify({"error": "No file part in request"}), 400
 
         file = request.files['file']
-        
-        # Ensure a valid file is selected
         if file.filename == '':
             return jsonify({"error": "No selected file"}), 400
 
-        # Save the file with a unique name
         filename = f"{current_user['username']}_{file.filename}"
-        file_path = os.path.join(UPLOAD_FOLDER, filename)
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         file.save(file_path)
 
         return jsonify({"message": f"File uploaded successfully by {current_user['username']}"}), 200
@@ -90,21 +87,13 @@ def download_file(filename):
     role = current_user["role"]
     username = current_user["username"]
 
-    # 🔍 Debugging logs
-    print(f"Requested filename: {filename}")
-
-    # Ensure admin can download all files, but users can only download their own
     if role == "admin" or filename.startswith(username):
-        file_path = os.path.join(UPLOAD_FOLDER, filename)
-
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         if os.path.exists(file_path):
             return send_file(file_path, as_attachment=True)
-
-        print("File not found:", file_path)
-        return jsonify({"error": "File not found"}), 404  # Return proper HTTP 404 status
+        return jsonify({"error": "File not found"}), 404
 
     return jsonify({"error": "Access denied"}), 403
-
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

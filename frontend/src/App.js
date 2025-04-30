@@ -29,18 +29,18 @@ function App() {
       alert("Please select a file before uploading.");
       return;
     }
-
+  
     const formData = new FormData();
     formData.append("file", file);
-
+  
     console.log("Uploading file:", file.name);
     console.log("Token being sent:", token);
-
+  
     try {
       const res = await axios.post(`${API_BASE_URL}/upload`, formData, {
         headers: {
-          "Content-Type": "multipart/form-data",
           Authorization: `Bearer ${token}`,
+          // ❌ Do NOT set "Content-Type" manually!
         },
       });
       console.log("Upload response:", res.data);
@@ -50,6 +50,7 @@ function App() {
       alert("File upload failed! Check console for details.");
     }
   };
+  
 
   const downloadFile = async () => {
     if (!filename) {
