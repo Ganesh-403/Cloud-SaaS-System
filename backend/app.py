@@ -51,12 +51,18 @@ def login():
         conn.close()
 
         if user and user[0] == password:
-            access_token = create_access_token(identity={"username": username, "role": user[1]})
+            # Remove 'subject' argument here
+            access_token = create_access_token(
+    identity={"username": username},
+    additional_claims={"subject": username})
+
             return jsonify(access_token=access_token)
 
         return jsonify({"message": "Invalid credentials"}), 401
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
 
 @app.route('/upload', methods=['POST'])
 @jwt_required()
